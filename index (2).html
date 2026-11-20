@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f14">
+<link rel="icon" href="data:,">
+<title>Frequency Analyzer — Real-Time Sound &amp; Noise Monitoring System</title>
+<style>
+/* ================= Theme variables ================= */
+:root{
+  --bg:#0a0f14; --panel:#111922; --panel2:#16212c; --line:#223142; --grid:#1e2c3a;
+  --text:#e6edf3; --muted:#8aa0b4; --accent:#35d0c0; --accent2:#ffb454;
+  --ok:#3ddc84; --warn:#f5d547; --orange:#ff9f43; --bad:#ff5c5c;
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.35);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+[data-theme="light"]{
+  --bg:#eef2f6; --panel:#ffffff; --panel2:#f3f6f9; --line:#d5dde6; --grid:#e3e9ef;
+  --text:#0f1a24; --muted:#566879; --accent:#0a8f84; --accent2:#c26a00;
+  --ok:#1a9a4f; --warn:#b08900; --orange:#d9720b; --bad:#d63b3b;
+  --shadow:0 1px 2px rgba(15,26,36,.08), 0 4px 14px rgba(15,26,36,.06);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 var(--sans);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  transition:background .3s,color .3s}
+h1,h2,h3,p{margin:0}
+button,select,input{font:inherit;color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:12px}
+
+/* ================= Header ================= */
+.app-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 2px 14px}
+.app-header h1{font-size:1.5rem;letter-spacing:.02em;font-weight:700}
+.subtitle{color:var(--muted);font-size:.9rem}
+.tagline{color:var(--accent);font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+.icon-btn{min-width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:1.1rem;box-shadow:var(--shadow)}
+
+/* ================= Cards ================= */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);min-width:0;
+  transition:background .3s,border-color .3s}
+.card h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.grid{display:grid;gap:12px;grid-template-columns:1fr;margin-top:12px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(2,1fr)}.span-all{grid-column:1/-1}}
+@media(min-width:1100px){.grid{grid-template-columns:repeat(4,1fr)}.span2{grid-column:span 2}}
+.big{font-family:var(--mono);font-size:2.3rem;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.big .unit{font-size:.9rem;color:var(--muted);margin-left:6px;font-weight:400}
+.tag{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel2)}
+.note{font-size:.8rem;color:var(--muted);margin-top:8px}
+.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px;margin:10px 0 0}
+.kv div{background:var(--panel2);border-radius:8px;padding:6px 9px}
+.kv dt{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kv dd{margin:0;font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums}
+.kv.three{grid-template-columns:repeat(3,1fr)}
+.dim{opacity:.45}
+
+/* ================= Notice + intro ================= */
+.notice{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-size:.9rem}
+.notice.error{border-color:var(--bad);color:var(--bad)}
+.notice.warn{border-color:var(--warn)}
+.notice.info{border-color:var(--accent)}
+.intro ul{margin:8px 0 12px;padding-left:18px;color:var(--muted);font-size:.9rem}
+.intro .lead{font-size:.95rem}
+
+/* ================= Toolbar / controls ================= */
+.toolbar{margin-top:12px;display:grid;gap:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:600}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#04110f}
+.btn.big-start{min-height:54px;font-size:1.05rem;padding:0 28px}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.small{min-height:36px;padding:0 12px;font-size:.85rem}
+.ctl-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:800px){.ctl-row{grid-template-columns:repeat(5,1fr)}}
+.field{display:flex;flex-direction:column;gap:3px;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.field select,.field input[type=number]{min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);padding:0 8px;text-transform:none;letter-spacing:0;font-size:.95rem}
+.switches{display:flex;gap:18px;flex-wrap:wrap}
+.switch{display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer;min-height:36px}
+.switch input{width:20px;height:20px;accent-color:var(--accent)}
+.status{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 rgba(61,220,132,.6);animation:pulse 1.6s infinite}
+.dot.paused{background:var(--warn)}
+.dot.err{background:var(--bad)}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+
+/* ================= Meter + assessment ================= */
+.meter{height:10px;border-radius:6px;background:var(--panel2);overflow:hidden;margin-top:10px;border:1px solid var(--line)}
+.meter>div{height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--warn),var(--orange),var(--bad));background-size:var(--meterw,100%) 100%;transition:width .12s linear}
+.assess{border-left:6px solid var(--muted)}
+.assess.ok{border-left-color:var(--ok)}.assess.warn{border-left-color:var(--warn)}
+.assess.orange{border-left-color:var(--orange)}.assess.bad{border-left-color:var(--bad)}
+.assess .state{font-size:1.7rem;font-weight:700}
+.assess.ok .state{color:var(--ok)}.assess.warn .state{color:var(--warn)}
+.assess.orange .state{color:var(--orange)}.assess.bad .state{color:var(--bad)}
+.assess p{margin-top:6px;font-size:.9rem}
+.assess .lbl{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* ================= Canvases ================= */
+.chart{position:relative;width:100%;border-radius:10px;overflow:hidden;background:var(--panel2);border:1px solid var(--line)}
+.chart canvas{display:block;width:100%;height:100%}
+.h-spec{height:280px}.h-wave{height:190px}.h-series{height:220px}
+@media(min-width:800px){.h-spec{height:340px}.h-wave{height:220px}.h-series{height:250px}}
+.spec-ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.peaks{font-family:var(--mono);font-size:.8rem;color:var(--muted);margin-top:8px;word-break:break-word}
+
+/* ================= Classification / env / stats ================= */
+.bars{display:grid;gap:7px;margin-top:10px}
+.bar-row{display:grid;grid-template-columns:130px 1fr 40px;gap:8px;align-items:center;font-size:.8rem}
+.bar{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.bar-row span:last-child{font-family:var(--mono);text-align:right;color:var(--muted)}
+.cls-top{font-size:1.25rem;font-weight:600}
+.thr{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--accent);font-size:.9rem;min-height:32px;display:flex;align-items:center}
+details p,details li{font-size:.85rem;color:var(--muted);margin-top:6px}
+details ul,details ol{padding-left:18px;margin:6px 0}
+code{font-family:var(--mono);background:var(--panel2);padding:1px 5px;border-radius:5px;font-size:.82rem}
+footer{color:var(--muted);font-size:.78rem;text-align:center;padding:18px 8px 28px}
+.hidden{display:none!important}
+.legend{display:flex;gap:14px;font-size:.75rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.warnchip{color:var(--bad);font-size:.78rem}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="app-header">
+  <div>
+    <h1>Frequency Analyzer</h1>
+    <p class="subtitle">Real-Time Sound &amp; Noise Monitoring System</p>
+    <p class="tagline">Listen. Analyze. Understand.</p>
+  </div>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">☾</button>
+</header>
+
+<noscript><div class="notice error">This application requires JavaScript.</div></noscript>
+<div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+
+<!-- ============ Microphone permission explanation ============ -->
+<section class="card intro" id="intro" style="margin-top:12px">
+  <h2>Microphone access</h2>
+  <p class="lead">Frequency Analyzer listens to surrounding sound through your device microphone and analyses it live with the Web Audio API (FFT).</p>
+  <ul>
+    <li>Your browser will ask for microphone permission when you press Start.</li>
+    <li>Audio is processed <b>locally in your browser</b>. It is never recorded, stored or uploaded.</li>
+    <li>Only numbers (levels, frequencies) are kept, and saved on this device only if you enable “Save numeric history”.</li>
+    <li>Readings are <b>uncalibrated estimates</b>. A phone is not a professional sound-level meter.</li>
+  </ul>
+  <button class="btn primary big-start js-start" type="button">▶ Start Analysis</button>
+  <p class="note" id="supportMsg"></p>
+</section>
+
+<!-- ============ Controls ============ -->
+<section class="card toolbar" aria-label="Controls">
+  <div class="btn-row">
+    <button class="btn primary js-start" id="startBtn" type="button">▶ Start Analysis</button>
+    <button class="btn danger" id="stopBtn" type="button" disabled>■ Stop Analysis</button>
+    <button class="btn" id="pauseBtn" type="button" disabled>❚❚ Pause</button>
+    <button class="btn" id="resetBtn" type="button">↺ Reset</button>
+    <div class="status" style="margin-left:auto"><span class="dot" id="dot"></span><span id="statusTxt">Idle</span></div>
+  </div>
+  <div class="ctl-row">
+    <label class="field">FFT size
+      <select id="fftSel"><option>2048</option><option selected>4096</option><option>8192</option></select></label>
+    <label class="field">Frequency scale
+      <select id="scaleSel"><option value="log" selected>Logarithmic</option><option value="lin">Linear</option></select></label>
+    <label class="field">Environment
+      <select id="envSel">
+        <option value="study">Study Room</option><option value="bedroom">Bedroom</option>
+        <option value="classroom">Classroom</option><option value="office">Office</option>
+        <option value="road">Road / Traffic</option><option value="general" selected>General Environment</option>
+      </select></label>
+    <label class="field">Waveform gain
+      <select id="gainSel"><option value="auto" selected>Auto</option><option value="1">×1 (true scale)</option><option value="4">×4</option><option value="16">×16</option></select></label>
+    <label class="field">Graph window
+      <select id="winSel"><option value="60">Last 1 min</option><option value="300">Last 5 min</option><option value="0" selected>Whole session</option></select></label>
+  </div>
+  <div class="switches">
+    <label class="switch"><input type="checkbox" id="statsChk" checked> Statistics enabled</label>
+    <label class="switch"><input type="checkbox" id="saveChk"> Save numeric history on this device</label>
+  </div>
+</section>
+
+<div class="grid">
+
+  <!-- ============ Level ============ -->
+  <section class="card span2" id="levelCard">
+    <h2>Sound level <span class="tag" id="levelMode">uncalibrated · dBFS</span></h2>
+    <div class="big"><span id="lvlNow">—</span><span class="unit" id="lvlUnit">dBFS</span></div>
+    <div class="meter"><div id="meterFill"></div></div>
+    <dl class="kv three">
+      <div><dt>Minimum</dt><dd id="lvlMin">—</dd></div>
+      <div><dt>Average (energy)</dt><dd id="lvlAvg">—</dd></div>
+      <div><dt>Maximum</dt><dd id="lvlMax">—</dd></div>
+      <div><dt>Peak (sample)</dt><dd id="lvlPeak">—</dd></div>
+      <div><dt>Slow (1 s) level</dt><dd id="lvlSlow">—</dd></div>
+      <div><dt>Frame peak</dt><dd id="lvlFramePeak">—</dd></div>
+    </dl>
+    <p class="note" id="levelNote">Estimate only. dBFS is digital amplitude relative to full scale (0 dBFS), unweighted; it is not dB SPL. Calibrate below to obtain an approximate dB SPL.</p>
+    <p class="warnchip hidden" id="clipWarn">⚠ Input is clipping — level readings are unreliable.</p>
+  </section>
+
+  <!-- ============ Assessment ============ -->
+  <section class="card span2 assess" id="assessCard">
+    <h2>Noise assessment <span class="tag" id="assessMode">relative</span></h2>
+    <div class="state" id="aState">—</div>
+    <p><span class="lbl">Reduce noise?</span><br><b id="aReduce">—</b></p>
+    <p><span class="lbl">Explanation</span><br><span id="aExplain">Start the analysis to see an assessment.</span></p>
+    <p><span class="lbl">Suggested action</span><br><span id="aAction">—</span></p>
+    <p class="note" id="aExposure"></p>
+  </section>
+
+  <!-- ============ Frequency cards ============ -->
+  <section class="card" id="domCard">
+    <h2>Dominant frequency</h2>
+    <div class="big"><span id="domVal">—</span><span class="unit">Hz</span></div>
+    <p><span class="tag" id="domBand">—</span> <span class="tag" id="domDb">— dBFS</span></p>
+    <p class="note">Strongest FFT peak, averaged ≈1 s. Not necessarily the pitch you hear.</p>
+  </section>
+
+  <section class="card">
+    <h2>Current frequency</h2>
+    <div class="big"><span id="curVal">—</span><span class="unit">Hz</span></div>
+    <dl class="kv"><div><dt>Minimum</dt><dd id="curMin">—</dd></div><div><dt>Maximum</dt><dd id="curMax">—</dd></div></dl>
+    <p class="note">Instant peak of the latest FFT frame; min/max over this session.</p>
+  </section>
+
+  <section class="card">
+    <h2>Fundamental (f0)</h2>
+    <div class="big"><span id="f0Val">—</span><span class="unit">Hz</span></div>
+    <p><span class="tag" id="f0Note">—</span> <span class="tag" id="f0Clar">clarity —</span></p>
+    <p class="note" id="f0Cmp">Estimated from time-domain autocorrelation (50–4000 Hz) when the sound is periodic. Dominant ≠ fundamental: a strong harmonic can outweigh f0.</p>
+  </section>
+
+  <section class="card">
+    <h2>Frequency resolution</h2>
+    <div class="big"><span id="resVal">—</span><span class="unit">Hz/bin</span></div>
+    <dl class="kv">
+      <div><dt>FFT size</dt><dd id="resN">—</dd></div><div><dt>Sample rate</dt><dd id="resFs">—</dd></div>
+      <div><dt>Window</dt><dd id="resWin">—</dd></div><div><dt>Nyquist</dt><dd id="resNy">—</dd></div>
+    </dl>
+    <p class="note">Δf = sample rate ÷ FFT size. Larger FFT = finer resolution, slower response.</p>
+  </section>
+
+  <!-- ============ Spectrum ============ -->
+  <section class="card span-all">
+    <h2>Frequency spectrum <span class="tag" id="specTag">log · dBFS</span></h2>
+    <div class="chart h-spec" id="specBox"><canvas id="specCv" style="touch-action:pan-y" aria-label="Frequency spectrum graph"></canvas></div>
+    <div class="peaks" id="peaksTxt">Peaks: —</div>
+    <p class="note">Hover or touch the graph for exact values. Amplitude is referenced so that a full-scale sine wave reads 0 dBFS. Amber line = dominant frequency; dots = top peaks.</p>
+  </section>
+
+  <!-- ============ Waveform ============ -->
+  <section class="card span-all">
+    <h2>Live waveform <span class="tag" id="waveTag">—</span></h2>
+    <div class="chart h-wave" id="waveBox"><canvas id="waveCv" aria-label="Live sound waveform"></canvas></div>
+    <p class="note">Real time-domain samples from the microphone (±1 = digital full scale), trigger-aligned on a rising zero crossing.</p>
+  </section>
+
+  <!-- ============ Classification ============ -->
+  <section class="card span2">
+    <h2>Possible sound patterns</h2>
+    <div class="cls-top" id="clsTop">—</div>
+    <p class="note" id="clsConf">Pattern matching from spectrum and signal shape only. This is not identification of an exact sound source.</p>
+    <div class="bars" id="clsBars"></div>
+  </section>
+
+  <!-- ============ Environment ============ -->
+  <section class="card span2">
+    <h2>Environment guidance <span class="tag" id="envName">General Environment</span></h2>
+    <p id="envTip"></p>
+    <p class="note" id="envRef"></p>
+    <dl class="kv" id="envBands"></dl>
+    <details>
+      <summary>Configure category thresholds</summary>
+      <p id="thrHelp"></p>
+      <div class="thr" id="thrBox"></div>
+      <div class="btn-row" style="margin-top:8px"><button class="btn small" id="thrReset" type="button">Restore defaults</button></div>
+    </details>
+  </section>
+
+  <!-- ============ Time series ============ -->
+  <section class="card span-all">
+    <h2>Level &amp; dominant-frequency history</h2>
+    <div class="chart h-series" id="serBox"><canvas id="serCv" aria-label="Time series graph"></canvas></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Sound level (left axis)</span><span><i style="background:var(--accent2)"></i>Dominant frequency (right axis, log)</span></div>
+  </section>
+
+  <!-- ============ Statistics ============ -->
+  <section class="card span-all" id="statsCard">
+    <h2>Session statistics <span class="tag" id="statsTag">collecting</span></h2>
+    <dl class="kv three">
+      <div><dt>Session duration</dt><dd id="stDur">00:00</dd></div>
+      <div><dt>Average level</dt><dd id="stAvg">—</dd></div>
+      <div><dt>Highest level</dt><dd id="stMax">—</dd></div>
+      <div><dt>Lowest level</dt><dd id="stMin">—</dd></div>
+      <div><dt>Median dominant freq.</dt><dd id="stMed">—</dd></div>
+      <div><dt>Samples stored</dt><dd id="stN">0</dd></div>
+    </dl>
+    <div class="bars" id="catBars"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn small" id="csvBtn" type="button">⬇ Export numbers (CSV)</button>
+      <button class="btn small" id="clearSaved" type="button">Clear saved history</button>
+    </div>
+    <p class="note" id="savedInfo"></p>
+  </section>
+
+  <!-- ============ Calibration ============ -->
+  <section class="card span2">
+    <h2>Optional SPL calibration <span class="tag" id="calTag">not calibrated</span></h2>
+    <p style="font-size:.9rem">To turn dBFS into an approximate dB SPL, compare against a reference meter.</p>
+    <ol style="font-size:.85rem;color:var(--muted)">
+      <li>Start the analysis and place the phone next to a reference sound-level meter.</li>
+      <li>Play a steady noise (e.g. pink noise) at a moderate level (about 60–85 dB).</li>
+      <li>Type the reference reading below and press <b>Calibrate now</b>.</li>
+    </ol>
+    <div class="btn-row" style="align-items:flex-end">
+      <label class="field">Reference reading (dB SPL)<input type="number" id="calRef" min="30" max="130" step="0.1" value="70" inputmode="decimal"></label>
+      <button class="btn" id="calBtn" type="button" disabled>Calibrate now</button>
+      <button class="btn" id="calClear" type="button">Clear</button>
+    </div>
+    <p class="note">Offset = reference − measured dBFS (1 s energy average). Valid only for this device, browser and microphone setup, and not frequency-weighted (most meters show dBA). Expect errors of several dB; accuracy is poor near the microphone's noise floor and near clipping. Never treat the result as a certified measurement.</p>
+  </section>
+
+  <!-- ============ Science / help ============ -->
+  <section class="card span2">
+    <h2>Notes &amp; how to read this</h2>
+    <details open><summary>Scientific notes</summary>
+      <ul>
+        <li>Frequency (Hz) is pitch-related; amplitude (dB) is level-related. Loudness and pitch are different properties.</li>
+        <li>A sound contains many frequencies at once. The <b>dominant</b> frequency is just the strongest FFT bin; the <b>fundamental</b> is the lowest periodic component, often weaker than a harmonic.</li>
+        <li>FFT resolution Δf = fs/N. Peak interpolation refines the estimate but cannot separate components closer than about Δf × 2.</li>
+        <li>Frequency alone cannot say whether a sound is harmful; risk depends on level, exposure duration and environment.</li>
+        <li>Level is the RMS of the digital signal (125 ms “fast” smoothing, unweighted). Average is an energy (Leq-style) average, not an average of dB values.</li>
+        <li>Noise categories only use dB SPL thresholds when you calibrate. Otherwise they are relative to this device's input level.</li>
+      </ul>
+    </details>
+    <details><summary>Run on an Android phone</summary>
+      <ol>
+        <li><b>Easiest:</b> host this one file on any HTTPS site (GitHub Pages, Netlify Drop, Cloudflare Pages), open the link in Chrome, press Start, tap <i>Allow</i>.</li>
+        <li><b>Termux:</b> install Termux, put <code>index.html</code> in a folder, run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000</code> in Chrome (localhost counts as secure).</li>
+        <li><b>USB from a PC:</b> run <code>python3 -m http.server 8000</code> on the PC, enable USB debugging, run <code>adb reverse tcp:8000 tcp:8000</code>, then open <code>http://localhost:8000</code> on the phone.</li>
+        <li>Plain <code>http://192.168…</code> addresses are blocked from using the microphone. Use HTTPS or localhost.</li>
+        <li>If permission was denied: Chrome ⋮ → Site settings → Microphone → allow, then reload. Keep the screen on; browsers pause analysis in the background.</li>
+      </ol>
+    </details>
+  </section>
+
+</div>
+
+<footer>Frequency Analyzer · Listen. Analyze. Understand.<br>Estimates for education and general awareness only — not a certified sound-level meter.</footer>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   FREQUENCY ANALYZER — Vanilla JS, Web Audio API, Canvas
+   Sections: 1 DSP helpers (pure)  2 Reference data  3 State & utils
+             4 Audio engine  5 Frame processing  6 Rendering  7 UI  8 Init
+   ===================================================================== */
+
+/* ============================ 1. DSP HELPERS ============================ */
+// <DSP>
+// AnalyserNode applies a Blackman window (coherent gain 0.42) and divides by N.
+// A full-scale sine then reads about -13.56 dB per bin; this offset references it to 0 dBFS.
+const SPEC_DB_OFFSET = 20 * Math.log10(2 / 0.42);
+const DB_FLOOR = -120;
+
+const clamp = (x, lo, hi) => x < lo ? lo : x > hi ? hi : x;
+const ramp = (x, lo, hi) => clamp((x - lo) / (hi - lo), 0, 1);
+// trapezoid membership: 0 below a, up to 1 at b..c, back to 0 at d
+const trap = (x, a, b, c, d) => x < b ? ramp(x, a, b) : 1 - ramp(x, c, d);
+const ampToDb = a => a > 1e-6 ? Math.max(DB_FLOOR, 20 * Math.log10(a)) : DB_FLOOR;
+const powToDb = p => p > 1e-12 ? Math.max(DB_FLOOR, 10 * Math.log10(p)) : DB_FLOOR;
+
+/** Mean-removed power (RMS²) and absolute sample peak of a time-domain buffer. */
+function levelStats(buf) {
+  let sum = 0, sq = 0, peak = 0;
+  const n = buf.length;
+  for (let i = 0; i < n; i++) {
+    const v = buf[i]; sum += v; sq += v * v;
+    const a = v < 0 ? -v : v; if (a > peak) peak = a;
+  }
+  const mean = sum / n;
+  return { power: Math.max(0, sq / n - mean * mean), peak };
+}
+
+/** Strongest bin in [fMin,fMax] with parabolic interpolation (in dB). spec in dB. */
+function findDominant(spec, binHz, fMin, fMax) {
+  const n = spec.length;
+  // bins 0-3 are skipped: DC offset leaks into them through the Blackman window main lobe
+  const k0 = Math.max(4, Math.ceil(fMin / binHz)), k1 = Math.min(n - 2, Math.floor(fMax / binHz));
+  let best = k0, bv = -Infinity;
+  for (let k = k0; k <= k1; k++) if (spec[k] > bv) { bv = spec[k]; best = k; }
+  let delta = 0, db = bv;
+  const a = spec[best - 1], b = spec[best], c = spec[best + 1];
+  const den = a - 2 * b + c;
+  if (isFinite(den) && den < 0) {
+    delta = clamp(0.5 * (a - c) / den, -0.5, 0.5);
+    db = b - 0.25 * (a - c) * delta;
+  }
+  return { bin: best, freq: (best + delta) * binHz, db };
+}
+
+/** Local maxima ("peaks") above the spectral mean, widest-neighbourhood = 3 % of frequency. */
+function findPeaks(spec, binHz, maxPeaks, fMin, fMax) {
+  const n = spec.length;
+  const k0 = Math.max(4, Math.ceil(fMin / binHz)), k1 = Math.min(n - 3, Math.floor(fMax / binHz));
+  if (k1 <= k0) return [];
+  let mean = 0;
+  for (let k = k0; k <= k1; k++) mean += spec[k];
+  mean /= (k1 - k0 + 1);
+  const cand = [];
+  for (let k = k0; k <= k1; k++) {
+    const v = spec[k];
+    if (v <= spec[k - 1] || v < spec[k + 1] || v < mean + 12) continue;
+    const hw = Math.max(3, Math.round(0.03 * k));
+    let isMax = true;
+    for (let j = Math.max(k0, k - hw), e = Math.min(k1, k + hw); j <= e; j++) if (spec[j] > v) { isMax = false; break; }
+    if (isMax) cand.push(k);
+  }
+  cand.sort((p, q) => spec[q] - spec[p]);
+  return cand.slice(0, maxPeaks).map(k => {
+    const a = spec[k - 1], b = spec[k], c = spec[k + 1], den = a - 2 * b + c;
+    const d = den < 0 ? clamp(0.5 * (a - c) / den, -0.5, 0.5) : 0;
+    return { freq: (k + d) * binHz, db: b - 0.25 * (a - c) * d };
+  });
+}
+
+/** Broad spectral descriptors used by the sound-pattern classifier. spec in dB. */
+function spectralFeatures(spec, binHz, nyquist) {
+  const fMax = Math.min(nyquist, 16000);
+  const k0 = Math.max(1, Math.ceil(20 / binHz)), k1 = Math.min(spec.length - 1, Math.floor(fMax / binHz));
+  const kf0 = Math.max(k0, Math.ceil(100 / binHz)), kf1 = Math.min(k1, Math.floor(8000 / binHz));
+  let tot = 0, cen = 0, logSum = 0, fTot = 0, fCnt = 0, dbSum = 0;
+  const bands = [0, 0, 0, 0], edges = [250, 2000, 4000];
+  const pw = new Float64Array(k1 + 1);
+  for (let k = k0; k <= k1; k++) {
+    const p = Math.pow(10, spec[k] / 10); pw[k] = p;
+    const f = k * binHz; tot += p; cen += p * f;
+    bands[f < edges[0] ? 0 : f < edges[1] ? 1 : f < edges[2] ? 2 : 3] += p;
+    if (k >= kf0 && k <= kf1) { logSum += Math.log(p + 1e-30); fTot += p; fCnt++; dbSum += spec[k]; }
+  }
+  const dom = findDominant(spec, binHz, 20, fMax);
+  const flatness = fCnt > 0 && fTot > 0 ? Math.exp(logSum / fCnt) / (fTot / fCnt) : 0;
+  const kp = dom.bin, w = Math.max(2, Math.round(0.04 * kp));
+  let near = 0;
+  for (let k = Math.max(k0, kp - w); k <= Math.min(k1, kp + w); k++) near += pw[k];
+  return {
+    centroid: tot > 0 ? cen / tot : 0,
+    flatness,
+    bandRatio: bands.map(b => tot > 0 ? b / tot : 0),
+    peak: dom,
+    prominence: fCnt > 0 ? dom.db - dbSum / fCnt : 0,
+    peakShare: tot > 0 ? near / tot : 0
+  };
+}
+
+/**
+ * McLeod NSDF pitch detector. Returns {f0, clarity}; f0 is null if no periodicity candidate.
+ * clarity (0..1) measures how periodic the signal is.
+ */
+function nsdfPitch(buf, sr, fMin = 50, fMax = 4000) {
+  const W = Math.min(buf.length, Math.max(2048, 2 * Math.ceil(sr / fMin)));
+  const off = buf.length - W;
+  const x = new Float32Array(W);
+  let mean = 0;
+  for (let i = 0; i < W; i++) mean += buf[off + i];
+  mean /= W;
+  const S = new Float64Array(W + 1);
+  for (let i = 0; i < W; i++) { x[i] = buf[off + i] - mean; S[i + 1] = S[i] + x[i] * x[i]; }
+  if (S[W] < 1e-12) return { f0: null, clarity: 0 };
+  const tauMin = Math.max(2, Math.floor(sr / fMax));
+  const tauMax = Math.min(W - 2, Math.ceil(sr / fMin));
+  const nsdf = new Float32Array(tauMax + 2);
+  nsdf[0] = 1;
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let r = 0; const e = W - tau;
+    for (let i = 0; i < e; i++) r += x[i] * x[i + tau];
+    const m = S[W - tau] + (S[W] - S[tau]);
+    nsdf[tau] = m > 0 ? 2 * r / m : 0;
+  }
+  // skip the first lobe around tau = 0, then collect the maximum of each positive lobe
+  let pos = 1;
+  while (pos < tauMax && nsdf[pos] > 0) pos++;
+  while (pos < tauMax && nsdf[pos] <= 0) pos++;
+  const maxima = []; let cur = 0;
+  while (pos < tauMax) {
+    if (nsdf[pos] > nsdf[pos - 1] && nsdf[pos] >= nsdf[pos + 1] && (cur === 0 || nsdf[pos] > nsdf[cur])) cur = pos;
+    pos++;
+    if (pos < tauMax && nsdf[pos] <= 0) {
+      if (cur > 0) { maxima.push(cur); cur = 0; }
+      while (pos < tauMax && nsdf[pos] <= 0) pos++;
+    }
+  }
+  if (cur > 0) maxima.push(cur);
+  const cands = maxima.filter(t => t >= tauMin);
+  if (!cands.length) return { f0: null, clarity: 0 };
+  let hi = 0;
+  for (const t of cands) if (nsdf[t] > hi) hi = nsdf[t];
+  let tau = cands[0];
+  for (const t of cands) if (nsdf[t] >= 0.9 * hi) { tau = t; break; }
+  const a = nsdf[tau - 1], b = nsdf[tau], c = nsdf[tau + 1], den = a - 2 * b + c;
+  const d = den < 0 ? clamp(0.5 * (a - c) / den, -0.5, 0.5) : 0;
+  return { f0: sr / (tau + d), clarity: clamp(b - 0.25 * (a - c) * d, 0, 1) };
+}
+
+/**
+ * Heuristic scoring of broad sound patterns (0..1 each). These are *similarity scores*,
+ * not identifications. feat = spectralFeatures(), tmp = temporal descriptors, pitch = nsdfPitch().
+ */
+function classifyPatterns(feat, tmp, pitch, nStrongPeaks) {
+  const f0 = pitch.f0, cl = pitch.clarity, sd = tmp.stdDb, voiced = f0 && cl >= 0.5;
+  const pv = tmp.f0StdCents;          // null if not enough voiced frames
+  const br = feat.bandRatio;
+  const voice =
+    0.30 * (voiced ? trap(f0, 70, 90, 350, 600) * ramp(cl, 0.4, 0.75) : 0) +
+    0.20 * trap(feat.centroid, 200, 350, 2500, 4000) +
+    0.20 * trap(tmp.modRate, 1, 2.5, 7, 12) +
+    0.15 * (pv == null ? 0 : ramp(pv, 30, 150)) +
+    0.15 * ramp(br[1], 0.3, 0.6);
+  const music =
+    0.30 * ramp(cl, 0.5, 0.85) +
+    0.25 * ramp(nStrongPeaks, 2, 6) +
+    0.20 * (pv == null ? 0 : 1 - ramp(pv, 40, 200)) +
+    0.10 * trap(feat.centroid, 300, 600, 3000, 5000) +
+    0.15 * (1 - ramp(sd, 3, 10));
+  const traffic =
+    0.40 * ramp(br[0], 0.45, 0.8) +
+    0.20 * (1 - ramp(feat.centroid, 300, 900)) +
+    0.20 * (1 - ramp(cl, 0.3, 0.6)) +
+    0.20 * (1 - ramp(sd, 4, 10));
+  const background =
+    0.35 * (1 - ramp(sd, 1.5, 5)) +
+    0.25 * (1 - ramp(cl, 0.25, 0.5)) +
+    0.20 * ramp(feat.flatness, 0.05, 0.3) +
+    0.20 * (tmp.onsetDb > 8 ? 0 : 1);
+  const sudden = tmp.onsetDb >= 12 ? 0.6 + 0.4 * ramp(tmp.onsetDb, 15, 30) : ramp(tmp.onsetDb, 6, 12) * 0.4;
+  const whistle =
+    0.30 * trap(feat.peak.freq, 1000, 1800, 5000, 8000) +
+    0.25 * ramp(feat.prominence, 20, 35) +
+    0.30 * ramp(feat.peakShare, 0.35, 0.7) +
+    0.15 * ramp(cl, 0.6, 0.9);
+  return [
+    { key: 'voice', label: 'Human voice-like', score: voice },
+    { key: 'music', label: 'Music-like', score: music },
+    { key: 'traffic', label: 'Traffic-like noise', score: traffic },
+    { key: 'background', label: 'Continuous background', score: background },
+    { key: 'sudden', label: 'Sudden loud sound', score: sudden },
+    { key: 'whistle', label: 'Whistle-like tone', score: whistle }
+  ];
+}
+
+/** Standard deviation of an array; and count of mean-crossings (both directions, i.e. 2 per cycle) with hysteresis. */
+function stdDev(a) {
+  if (a.length < 2) return 0;
+  let m = 0; for (const v of a) m += v; m /= a.length;
+  let s = 0; for (const v of a) s += (v - m) * (v - m);
+  return Math.sqrt(s / a.length);
+}
+function meanCrossings(a, hyst) {
+  if (a.length < 4) return 0;
+  let m = 0; for (const v of a) m += v; m /= a.length;
+  let side = 0, n = 0;
+  for (const v of a) {
+    if (v > m + hyst) { if (side === -1) n++; side = 1; }
+    else if (v < m - hyst) { if (side === 1) n++; side = -1; }
+  }
+  return n;
+}
+// </DSP>
+
+/* ============================ 2. REFERENCE DATA ============================ */
+const CATS = [
+  { name: 'Very Quiet', cls: 'ok' }, { name: 'Quiet', cls: 'ok' }, { name: 'Moderate', cls: 'warn' },
+  { name: 'Noisy', cls: 'orange' }, { name: 'Very Noisy', cls: 'bad' }
+];
+const REDUCE = ['No', 'No', 'Not necessarily', 'Yes, if it continues', 'Yes'];
+// Relative bands on the device's own input level (dBFS). Device dependent; NOT dB SPL.
+// With typical phone sensitivity, ~ +120 to +130 converts dBFS to dB SPL, so these roughly align with 40/55/70/85 dB.
+const REL_DEFAULT = [-85, -70, -55, -40];
+/*
+ * Upper bounds (dB SPL) for Very Quiet / Quiet / Moderate / Noisy. Anything above the last bound is Very Noisy.
+ * The bounds are illustrative bands built around the cited reference values; they are NOT official limits.
+ */
+const ENVS = {
+  study: { name: 'Study Room', spl: [30, 35, 45, 55],
+    tip: 'Concentration tasks benefit from steady, low-level sound. Speech and sudden, irregular sounds disrupt reading and memory work more than steady noise of the same level.',
+    ref: 'No official limit exists for study rooms. The 35 dB LAeq classroom value (WHO Guidelines for Community Noise, 1999; ANSI/ASA S12.60) is used here as a conservative anchor.',
+    mod: 'Fine for light work; for demanding reading or exams, move to a quieter spot, close doors/windows or use ear protection (earplugs).',
+    noisy: 'Likely distracting. Close windows/doors, move away from the source, switch off noisy appliances, or relocate.' },
+  bedroom: { name: 'Bedroom', spl: [25, 30, 40, 50],
+    tip: 'For sleep, steady background noise and single loud events both matter. Sound is judged against the bedroom guideline at the sleeper\'s ear, ideally over the whole night.',
+    ref: 'WHO Guidelines for Community Noise (1999): 30 dB LAeq for continuous noise and 45 dB LAmax for single events inside bedrooms at night.',
+    mod: 'May be too loud for falling asleep. Reduce sources (fans, devices) or close windows; check again at night.',
+    noisy: 'Likely to disturb sleep if sustained. Remove or isolate the source, close windows, or consider relocating the bed.' },
+  classroom: { name: 'Classroom', spl: [30, 35, 45, 60],
+    tip: 'Background noise reduces speech intelligibility, especially for children and second-language listeners. Unoccupied background level is the usual design measure.',
+    ref: 'WHO (1999): 35 dB LAeq during teaching. ANSI/ASA S12.60: 35 dBA maximum background level in typical unoccupied core learning spaces.',
+    mod: 'Acceptable while people are talking, but too high as unoccupied background level. Check HVAC, doors and corridors.',
+    noisy: 'Speech clarity is likely affected. Reduce group chatter, close doors and windows, and address mechanical noise.' },
+  office: { name: 'Office', spl: [35, 45, 55, 65],
+    tip: 'Open-plan work is mostly affected by intelligible speech. Typical design targets are about 40–50 dBA depending on task.',
+    ref: 'No single official limit. Commonly cited design guidance is roughly 35–50 dBA for offices depending on the task (e.g. ISO 3382-3 / ASHRAE guidance). Treat as indicative.',
+    mod: 'Normal conversation level. For focused work, use quiet zones, headphones or acoustic panels.',
+    noisy: 'Likely to impair focus and communication. Move calls to a separate room, add absorption, or reduce equipment noise.' },
+  road: { name: 'Road / Traffic', spl: [40, 53, 65, 75],
+    tip: 'Traffic noise is judged on long-term averages (Lden/Lnight), not instant readings. A short sample here only hints at the typical level.',
+    ref: 'WHO Environmental Noise Guidelines for the European Region (2018): road traffic below 53 dB Lden and 45 dB Lnight (outdoors, long-term A-weighted averages).',
+    mod: 'Typical roadside level. Long-term residential exposure is better evaluated over days.',
+    noisy: 'High for a residential setting. Prefer rooms facing away from the road, use sealed windows and avoid long exposure outdoors.' },
+  general: { name: 'General Environment', spl: [30, 45, 60, 75],
+    tip: 'Noise effects depend on level and duration. Frequency alone cannot tell whether a sound is harmful.',
+    ref: 'WHO (1999): 50–55 dB LAeq outdoors in daytime for annoyance; 35 dB LAeq in dwellings. Occupational exposure limits (e.g. NIOSH 85 dBA over 8 h) apply to workplaces, not to this estimate.',
+    mod: 'Typical daily-life level. Reduce if the activity is noise-sensitive or the sound lasts for many hours.',
+    noisy: 'Elevated. Limit time spent here, move away from the source or reduce it; use hearing protection if levels are high for long periods.' }
+};
+
+/* ============================ 3. STATE & UTILS ============================ */
+const $ = id => document.getElementById(id);
+const WARMUP_S = 0.6;        // ignore first moments (mic start-up transients) for statistics
+const GATE_DB = -88;         // below this RMS (dBFS) there is no usable signal
+const MAX_HIST = 7200;       // stored history samples (decimated when exceeded)
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+};
+
+const state = {
+  running: false, starting: false, paused: false,
+  stream: null, ctx: null, source: null, analyser: null, mute: null, wakeLock: null,
+  raf: 0, lastTs: 0, lastUi: 0,
+  fftSize: 4096, scale: 'log', env: 'general', statsOn: true, saveHist: false, waveGain: 'auto', winSec: 0,
+  sr: 48000, binHz: 48000 / 4096,
+  timeBuf: null, rawSpec: null, dispSpec: null, longSpec: null, specInit: false,
+  calOffset: null,
+  custom: { rel: REL_DEFAULT.slice(), spl: {} },
+  sessionT: 0,
+  fastP: 0, slowP: 0, lvlInit: false, fastDb: DB_FLOOR, slowDb: DB_FLOOR, frameDb: DB_FLOOR, framePeakDb: DB_FLOOR,
+  clipUntil: 0,
+  curFreq: NaN, domFreq: NaN, domDb: DB_FLOOR, pitch: { f0: null, clarity: 0 }, peaks: [], nStrong: 0,
+  acc50: 0, acc100: 0, acc200: 0,
+  lvlHist: [], f0Hist: [], onsetDb: 0, onsetUntil: 0,
+  cls: null, tmp: { stdDb: 0, modRate: 0, onsetDb: 0, f0StdCents: null },
+  stats: null, hist: null, hover: null, waveInfo: ''
+};
+function newStats() {
+  return { lvlMin: Infinity, lvlMax: -Infinity, energy: 0, energyT: 0, peak: 0,
+    fMin: Infinity, fMax: -Infinity, catT: [0, 0, 0, 0, 0], activeT: 0 };
+}
+function newHist() { return { interval: 0.5, next: 0, accP: 0, accT: 0, t: [], lvl: [], dom: [], f0: [] }; }
+state.stats = newStats(); state.hist = newHist();
+
+const lastText = {};
+function setText(id, t) { if (lastText[id] !== t) { lastText[id] = t; $(id).textContent = t; } }
+const fmtDb = v => isFinite(v) && v > DB_FLOOR + 0.5 ? v.toFixed(1) : '—';
+function fmtHz(f) { return !isFinite(f) ? '—' : f >= 10000 ? (f / 1000).toFixed(2) + 'k' : f >= 1000 ? f.toFixed(0) : f.toFixed(1); }
+function fmtHzFull(f) { return !isFinite(f) ? '—' : f >= 1000 ? (f / 1000).toFixed(2) + ' kHz' : f.toFixed(1) + ' Hz'; }
+function fmtTime(s) { s = Math.floor(s); const m = Math.floor(s / 60), r = s % 60; return (m >= 60 ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(r).padStart(2, '0'); }
+function freqBand(f) { return !isFinite(f) ? '—' : f < 250 ? 'Low Frequency' : f < 2000 ? 'Mid Frequency' : 'High Frequency'; }
+const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+function noteName(f) {
+  const n = 69 + 12 * Math.log2(f / 440), r = Math.round(n), cents = Math.round((n - r) * 100);
+  return NOTES[((r % 12) + 12) % 12] + (Math.floor(r / 12) - 1) + (cents >= 0 ? ' +' : ' ') + cents + '¢';
+}
+const calibrated = () => state.calOffset !== null;
+const toDisp = dbfs => calibrated() ? dbfs + state.calOffset : dbfs;
+const unitLabel = () => calibrated() ? 'dB SPL est.' : 'dBFS';
+
+function showNotice(msg, kind) {
+  const n = $('notice'); n.textContent = msg; n.className = 'notice ' + (kind || 'info');
+}
+function hideNotice() { $('notice').className = 'notice hidden'; }
+
+/* ---- thresholds in the currently displayed unit ---- */
+function activeThresholds() {
+  if (calibrated()) return state.custom.spl[state.env] || ENVS[state.env].spl;
+  return state.custom.rel;
+}
+function categoryOf(dispDb) {
+  const t = activeThresholds();
+  return dispDb <= t[0] ? 0 : dispDb <= t[1] ? 1 : dispDb <= t[2] ? 2 : dispDb <= t[3] ? 3 : 4;
+}
+
+/* ============================ 4. AUDIO ENGINE ============================ */
+function supportProblem() {
+  if (!window.isSecureContext) return 'Microphone access needs a secure page. Open this app over HTTPS or from http://localhost.';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return 'This browser does not support microphone access (getUserMedia). Try a current version of Chrome, Edge, Firefox or Safari.';
+  if (!(window.AudioContext || window.webkitAudioContext)) return 'This browser does not support the Web Audio API.';
+  return '';
+}
+function explainError(e) {
+  const n = e && e.name;
+  if (n === 'NotAllowedError' || n === 'PermissionDeniedError' || n === 'SecurityError') return 'Microphone permission was denied. Allow microphone access in the browser’s site settings (lock icon / ⋮ → Site settings → Microphone), then press Start again.';
+  if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'No microphone was found on this device. Connect one and try again.';
+  if (n === 'NotReadableError' || n === 'TrackStartError') return 'The microphone is busy or unavailable (another app may be using it). Close other apps and try again.';
+  if (n === 'AbortError') return 'The microphone request was interrupted. Please try again.';
+  return 'Could not start the microphone: ' + ((e && e.message) || n || 'unknown error') + '.';
+}
+
+async function start() {
+  if (state.running || state.starting) return;           // never open two streams
+  const problem = supportProblem();
+  if (problem) { showNotice(problem, 'error'); return; }
+  state.starting = true; updateButtons(); setStatus('Requesting microphone…', '');
+  let stream = null, ctx = null;
+  try {
+    // Disable speech-oriented processing: it distorts level and spectrum measurements.
+    const wanted = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }, video: false };
+    try { stream = await navigator.mediaDevices.getUserMedia(wanted); }
+    catch (e) { if (e && e.name === 'OverconstrainedError') stream = await navigator.mediaDevices.getUserMedia({ audio: true }); else throw e; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC({ latencyHint: 'interactive' });
+    if (ctx.state === 'suspended') await ctx.resume();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = state.fftSize;
+    analyser.smoothingTimeConstant = 0;                  // we do our own, time-based smoothing
+    const mute = ctx.createGain(); mute.gain.value = 0;  // keeps the graph "pulled" on all browsers without audible feedback
+    source.connect(analyser); analyser.connect(mute); mute.connect(ctx.destination);
+
+    Object.assign(state, { stream, ctx, source, analyser, mute, running: true, paused: false });
+    state.sr = ctx.sampleRate;
+    allocBuffers();
+    resetSession();
+    stream.getAudioTracks().forEach(t => { t.onended = () => { if (state.running) { showNotice('The microphone was disconnected or stopped by the system.', 'warn'); stop(); } }; });
+    ctx.onstatechange = onCtxState;
+    acquireWakeLock();
+    hideNotice();
+    state.lastTs = performance.now();
+    state.raf = requestAnimationFrame(frame);
+    setStatus('Listening', 'live');
+  } catch (e) {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (ctx) { try { await ctx.close(); } catch (_) { /* ignore */ } }
+    Object.assign(state, { stream: null, ctx: null, source: null, analyser: null, mute: null, running: false });
+    showNotice(explainError(e), 'error'); setStatus('Microphone unavailable', 'err');
+  } finally {
+    state.starting = false; updateButtons();
+  }
+}
+
+async function stop() {
+  if (!state.running && !state.starting) return;
+  state.running = false; state.paused = false;
+  cancelAnimationFrame(state.raf);
+  if (state.stream) state.stream.getTracks().forEach(t => { t.onended = null; t.stop(); });   // release the microphone
+  try { if (state.source) state.source.disconnect(); if (state.analyser) state.analyser.disconnect(); if (state.mute) state.mute.disconnect(); } catch (_) { /* ignore */ }
+  if (state.ctx) { state.ctx.onstatechange = null; try { await state.ctx.close(); } catch (_) { /* ignore */ } }
+  Object.assign(state, { stream: null, ctx: null, source: null, analyser: null, mute: null });
+  releaseWakeLock();
+  persistHistory();
+  updateUI(true); drawAll(); drawSeries();             // final statistics stay visible
+  setStatus('Stopped — final statistics shown', '');
+  updateButtons();
+}
+
+async function togglePause() {
+  if (!state.running || !state.ctx) return;
+  try {
+    if (state.paused) { await state.ctx.resume(); state.paused = false; state.lastTs = performance.now(); setStatus('Listening', 'live'); }
+    else { state.paused = true; await state.ctx.suspend(); setStatus('Paused', 'paused'); }
+  } catch (e) { showNotice('Could not change the audio state: ' + e.message, 'warn'); }
+  updateButtons();
+}
+
+function onCtxState() {
+  if (!state.running || state.paused || !state.ctx) return;
+  if (state.ctx.state !== 'running') {
+    state.ctx.resume().catch(() => showNotice('Audio was interrupted by the system. Press Pause, then Resume.', 'warn'));
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.running) {
+    if (!state.paused && state.ctx && state.ctx.state !== 'running') state.ctx.resume().catch(() => {});
+    acquireWakeLock();
+  }
+});
+async function acquireWakeLock() {
+  try { if ('wakeLock' in navigator && state.running && !state.wakeLock) {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+  } } catch (_) { /* optional feature */ }
+}
+function releaseWakeLock() { try { if (state.wakeLock) state.wakeLock.release(); } catch (_) { /* ignore */ } state.wakeLock = null; }
+
+function allocBuffers() {
+  const a = state.analyser, n = a.fftSize, bins = a.frequencyBinCount;
+  state.fftSize = n; state.binHz = state.sr / n;
+  state.timeBuf = new Float32Array(n);
+  state.rawSpec = new Float32Array(bins);
+  state.dispSpec = new Float32Array(bins);
+  state.longSpec = new Float32Array(bins);
+  state.specInit = false;
+}
+function changeFft(n) {
+  state.fftSize = n;
+  if (state.running && state.analyser) { state.analyser.fftSize = n; allocBuffers(); }
+  else { state.binHz = state.sr / n; }
+  if (!state.running) state.dispSpec = state.longSpec = null;
+  state.specInit = false;
+  state.domFreq = state.curFreq = NaN; state.peaks = [];
+  updateUI(true); requestRedraw();
+}
+
+/* ============================ 5. FRAME PROCESSING ============================ */
+function frame(ts) {
+  state.raf = requestAnimationFrame(frame);
+  if (!state.running || state.paused) return;
+  const dt = Math.min(0.25, Math.max(0, (ts - state.lastTs) / 1000)); state.lastTs = ts;
+  state.analyser.getFloatTimeDomainData(state.timeBuf);   // real time-domain samples
+  state.analyser.getFloatFrequencyData(state.rawSpec);    // FFT magnitude in dB
+  state.sessionT += dt;
+  processFrame(dt);
+  drawSpectrum(); drawWave();
+  if (ts - state.lastUi > 100) { state.lastUi = ts; updateUI(false); drawSeries(); }
+}
+
+function smoothSpectra(dt) {
+  const raw = state.rawSpec, d = state.dispSpec, l = state.longSpec, n = raw.length;
+  const ad = state.specInit ? 1 - Math.exp(-dt / 0.12) : 1, al = state.specInit ? 1 - Math.exp(-dt / 1.0) : 1;
+  for (let i = 0; i < n; i++) {
+    let v = raw[i]; v = (v > -140 ? v : -140) + SPEC_DB_OFFSET;
+    d[i] += ad * (v - d[i]); l[i] += al * (v - l[i]);
+    if (!state.specInit) { d[i] = v; l[i] = v; }
+  }
+  state.specInit = true;
+}
+
+function processFrame(dt) {
+  const S = state, lv = levelStats(S.timeBuf);
+  S.frameDb = powToDb(lv.power); S.framePeakDb = ampToDb(lv.peak);
+  if (lv.peak >= 0.98) S.clipUntil = S.sessionT + 1.5;
+  // Fast (125 ms) and slow (1 s) exponential energy averages
+  if (!S.lvlInit) { S.fastP = S.slowP = lv.power; S.lvlInit = true; }
+  else { S.fastP += (1 - Math.exp(-dt / 0.125)) * (lv.power - S.fastP); S.slowP += (1 - Math.exp(-dt / 1.0)) * (lv.power - S.slowP); }
+  S.fastDb = powToDb(S.fastP); S.slowDb = powToDb(S.slowP);
+  smoothSpectra(dt);
+
+  const active = S.sessionT > WARMUP_S, valid = S.fastDb > GATE_DB;
+  const st = S.stats;
+  if (S.statsOn && active) {
+    st.activeT += dt;
+    if (S.fastDb < st.lvlMin) st.lvlMin = S.fastDb;
+    if (S.fastDb > st.lvlMax) st.lvlMax = S.fastDb;
+    st.energy += lv.power * dt; st.energyT += dt;
+    if (lv.peak > st.peak) st.peak = lv.peak;
+    st.catT[categoryOf(toDisp(S.slowDb))] += dt;
+    const h = S.hist; h.accP += lv.power * dt; h.accT += dt;
+    if (h.accT >= h.interval) {
+      h.t.push(+S.sessionT.toFixed(2)); h.lvl.push(+powToDb(h.accP / h.accT).toFixed(2));
+      h.dom.push(valid && isFinite(S.domFreq) ? +S.domFreq.toFixed(1) : NaN);
+      h.f0.push(S.pitch.f0 && S.pitch.clarity >= 0.6 && valid ? +S.pitch.f0.toFixed(1) : NaN);
+      h.accP = 0; h.accT = 0;
+      if (h.t.length > MAX_HIST) { for (const k of ['t', 'lvl', 'dom', 'f0']) h[k] = h[k].filter((_, i) => i % 2 === 0); h.interval *= 2; }
+    }
+  }
+
+  // ---- 20 Hz tick: dominant / current frequency, temporal descriptors ----
+  S.acc50 += dt;
+  if (S.acc50 >= 0.05) {
+    const step = S.acc50; S.acc50 = 0;
+    const fMax = Math.min(20000, S.sr / 2 - S.binHz * 2);
+    const inst = findDominant(S.rawSpec, S.binHz, 20, fMax);
+    const dom = findDominant(S.longSpec, S.binHz, 20, fMax);
+    S.curFreq = valid ? inst.freq : NaN;
+    S.domFreq = valid ? dom.freq : NaN; S.domDb = dom.db;
+    if (S.statsOn && active && valid && isFinite(S.curFreq)) { st.fMin = Math.min(st.fMin, S.curFreq); st.fMax = Math.max(st.fMax, S.curFreq); }
+    // level history ring: 2 s at 20 Hz
+    const L = S.lvlHist; L.push(S.frameDb); if (L.length > 40) L.shift();
+    if (L.length >= 12) {   // onset: rise vs. the quietest frame 0.15–0.6 s ago
+      let mn = Infinity; for (let i = Math.max(0, L.length - 13); i < L.length - 3; i++) mn = Math.min(mn, L[i]);
+      const rise = S.frameDb - mn;
+      if (rise >= 6 && S.frameDb > GATE_DB + 15) { if (rise > S.onsetDb || S.sessionT > S.onsetUntil) S.onsetDb = rise; S.onsetUntil = S.sessionT + 1.5; }
+    }
+    if (S.sessionT > S.onsetUntil) S.onsetDb = 0;
+    S.tmp.stdDb = stdDev(L); S.tmp.modRate = L.length >= 30 ? meanCrossings(L, 1.5) / 2 / (L.length * 0.05) : 0; S.tmp.onsetDb = S.onsetDb;
+  }
+  // ---- 10 Hz tick: pitch (autocorrelation costs ~2M multiplies) ----
+  S.acc100 += dt;
+  if (S.acc100 >= 0.1) {
+    S.acc100 = 0;
+    if (S.fastDb > GATE_DB) {
+      const p = nsdfPitch(S.timeBuf, S.sr);
+      S.pitch = p;
+      if (p.f0 && p.clarity >= 0.6) { S.f0Hist.push(1200 * Math.log2(p.f0)); } else S.f0Hist.push(null);
+    } else { S.pitch = { f0: null, clarity: 0 }; S.f0Hist.push(null); }
+    if (S.f0Hist.length > 10) S.f0Hist.shift();
+    const v = S.f0Hist.filter(x => x !== null);
+    S.tmp.f0StdCents = v.length >= 4 ? stdDev(v) : null;
+  }
+  // ---- 5 Hz tick: peaks + pattern classification ----
+  S.acc200 += dt;
+  if (S.acc200 >= 0.2) {
+    S.acc200 = 0;
+    const fMax = Math.min(20000, S.sr / 2 - S.binHz * 3);
+    S.peaks = findPeaks(S.dispSpec, S.binHz, 8, 30, fMax);
+    S.nStrong = S.peaks.length ? S.peaks.filter(p => p.db >= S.peaks[0].db - 30).length : 0;
+    if (S.fastDb > GATE_DB) {
+      const feat = spectralFeatures(S.dispSpec, S.binHz, S.sr / 2);
+      S.cls = classifyPatterns(feat, S.tmp, S.pitch, S.nStrong);
+    } else S.cls = null;
+  }
+}
+
+function resetSession() {
+  const S = state;
+  S.stats = newStats(); S.hist = newHist(); S.sessionT = 0;
+  S.lvlInit = false; S.lvlHist = []; S.f0Hist = []; S.onsetDb = 0; S.onsetUntil = 0; S.clipUntil = 0;
+  S.curFreq = S.domFreq = NaN; S.cls = null; S.peaks = []; S.pitch = { f0: null, clarity: 0 };
+  S.acc50 = S.acc100 = S.acc200 = 0;
+  S.tmp = { stdDb: 0, modRate: 0, onsetDb: 0, f0StdCents: null };
+}
+
+/* ============================ 6. RENDERING ============================ */
+const C = {};   // resolved theme colours for canvas
+function refreshColors() {
+  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  Object.assign(C, { bg: g('--panel2'), grid: g('--grid'), text: g('--muted'), strong: g('--text'), accent: g('--accent'), accent2: g('--accent2'), bad: g('--bad'), line: g('--line') });
+}
+const MONO = '11px ui-monospace, Menlo, Consolas, monospace';
+function makeChart(boxId, cvId) {
+  const ch = { box: $(boxId), cv: $(cvId), w: 300, h: 200, dpr: 1, g: null };
+  ch.g = ch.cv.getContext('2d');
+  ch.resize = () => {
+    const r = ch.box.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
+    ch.w = Math.max(50, r.width); ch.h = Math.max(50, r.height); ch.dpr = dpr;
+    ch.cv.width = Math.round(ch.w * dpr); ch.cv.height = Math.round(ch.h * dpr);
+    ch.g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  ch.resize();
+  return ch;
+}
+let specCh, waveCh, serCh;
+
+const niceStep = raw => { const p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+
+/* ---------- Spectrum ---------- */
+const SPEC_Y_MIN = -120, SPEC_Y_MAX = 0;
+function drawSpectrum() {
+  const ch = specCh, g = ch.g, w = ch.w, h = ch.h;
+  const m = { l: 42, r: 10, t: 12, b: 24 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  const fMin = 20, fMax = Math.min(20000, state.sr / 2), log = state.scale === 'log';
+  const lr = Math.log(fMax / fMin);
+  const xOf = f => m.l + pw * (log ? Math.log(f / fMin) / lr : (f - fMin) / (fMax - fMin));
+  const fOf = x => { const u = (x - m.l) / pw; return log ? fMin * Math.exp(u * lr) : fMin + u * (fMax - fMin); };
+  const yOf = db => m.t + ph * (1 - (clamp(db, SPEC_Y_MIN, SPEC_Y_MAX) - SPEC_Y_MIN) / (SPEC_Y_MAX - SPEC_Y_MIN));
+  g.fillStyle = C.bg; g.fillRect(0, 0, w, h);
+  g.font = MONO; g.lineWidth = 1; g.textBaseline = 'middle';
+  // horizontal grid (dBFS)
+  for (let db = SPEC_Y_MIN; db <= SPEC_Y_MAX; db += 20) {
+    const y = Math.round(yOf(db)) + .5;
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(m.l, y); g.lineTo(w - m.r, y); g.stroke();
+    g.fillStyle = C.text; g.textAlign = 'right'; g.fillText(String(db), m.l - 5, y);
+  }
+  // vertical grid (Hz)
+  let ticks;
+  if (log) ticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].filter(t => t <= fMax);
+  else { const s = niceStep((fMax - fMin) / 6); ticks = []; for (let f = Math.ceil(fMin / s) * s; f <= fMax; f += s) ticks.push(f); }
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (const f of ticks) {
+    const x = Math.round(xOf(f)) + .5;
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x, m.t); g.lineTo(x, m.t + ph); g.stroke();
+    g.fillStyle = C.text; g.fillText(f >= 1000 ? (f / 1000) + 'k' : String(f), x, m.t + ph + 5);
+  }
+  g.textAlign = 'left'; g.fillStyle = C.text; g.fillText('dBFS', 4, 2);
+  g.textAlign = 'right'; g.fillText('Hz', w - 4, h - 12);
+
+  const sp = state.dispSpec;
+  let curve = null;
+  if (sp) {
+    const bh = state.binHz, n = sp.length, steps = Math.floor(pw);
+    curve = new Float32Array(steps + 1);
+    for (let i = 0; i <= steps; i++) {
+      const x = m.l + i;
+      const b0 = fOf(x - .5) / bh, b1 = fOf(x + .5) / bh;
+      let v;
+      if (b1 - b0 > 1) { v = -Infinity; for (let k = Math.max(0, Math.floor(b0)), e = Math.min(n - 1, Math.ceil(b1)); k <= e; k++) if (sp[k] > v) v = sp[k]; }
+      else { const bc = (b0 + b1) / 2, k = Math.floor(bc), fr = bc - k; v = sp[Math.min(n - 1, k)] * (1 - fr) + sp[Math.min(n - 1, k + 1)] * fr; }
+      curve[i] = v;
+    }
+    const grad = g.createLinearGradient(0, m.t, 0, m.t + ph);
+    grad.addColorStop(0, C.accent + 'aa'); grad.addColorStop(1, C.accent + '08');
+    g.beginPath(); g.moveTo(m.l, m.t + ph);
+    for (let i = 0; i <= steps; i++) g.lineTo(m.l + i, yOf(curve[i]));
+    g.lineTo(m.l + steps, m.t + ph); g.closePath(); g.fillStyle = grad; g.fill();
+    g.beginPath();
+    for (let i = 0; i <= steps; i++) { const y = yOf(curve[i]); i ? g.lineTo(m.l + i, y) : g.moveTo(m.l + i, y); }
+    g.strokeStyle = C.accent; g.lineWidth = 1.4; g.stroke();
+    // peaks
+    g.font = MONO; g.textAlign = 'center'; g.textBaseline = 'bottom';
+    let lastLabelX = -99;
+    const pk = state.peaks.slice().sort((a, b) => a.freq - b.freq).filter(p => p.freq >= fMin && p.freq <= fMax);
+    const top = new Set(state.peaks.slice(0, 5));
+    for (const p of pk) {
+      if (!top.has(p)) continue;
+      const x = xOf(p.freq), y = yOf(p.db);
+      g.fillStyle = C.strong; g.beginPath(); g.arc(x, y, 3, 0, 6.2832); g.fill();
+      if (x - lastLabelX > 46 && y > m.t + 14) { g.fillStyle = C.strong; g.fillText(fmtHz(p.freq), x, y - 5); lastLabelX = x; }
+    }
+    // dominant frequency
+    if (isFinite(state.domFreq) && state.domFreq >= fMin && state.domFreq <= fMax) {
+      const x = xOf(state.domFreq);
+      g.setLineDash([5, 4]); g.strokeStyle = C.accent2; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(x, m.t); g.lineTo(x, m.t + ph); g.stroke(); g.setLineDash([]);
+      const t = 'Dominant ' + fmtHzFull(state.domFreq), tw = g.measureText(t).width + 10;
+      const bx = clamp(x - tw / 2, m.l, w - m.r - tw);
+      g.fillStyle = C.accent2; g.fillRect(bx, m.t, tw, 16);
+      g.fillStyle = '#10151a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, bx + tw / 2, m.t + 8.5);
+    }
+  }
+  // hover read-out
+  const hv = state.hover;
+  if (hv && hv.x >= m.l && hv.x <= w - m.r) {
+    const f = fOf(hv.x); let db = null;
+    if (sp) { const kf = f / state.binHz, k = Math.floor(kf), fr = kf - k; db = sp[k] * (1 - fr) + (sp[k + 1] !== undefined ? sp[k + 1] : sp[k]) * fr; }
+    g.strokeStyle = C.strong; g.lineWidth = 1; g.beginPath(); g.moveTo(hv.x + .5, m.t); g.lineTo(hv.x + .5, m.t + ph); g.stroke();
+    if (db !== null) { g.fillStyle = C.strong; g.beginPath(); g.arc(hv.x, yOf(db), 4, 0, 6.2832); g.fill(); }
+    const txt = fmtHzFull(f) + (db !== null ? '  ' + db.toFixed(1) + ' dBFS' : '');
+    g.font = MONO; const tw = g.measureText(txt).width + 12;
+    const bx = hv.x + 10 + tw > w - m.r ? hv.x - 10 - tw : hv.x + 10, by = m.t + 22;
+    g.fillStyle = 'rgba(10,15,20,.88)'; g.fillRect(bx, by, tw, 20);
+    g.fillStyle = '#e6edf3'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(txt, bx + 6, by + 10.5);
+  }
+}
+
+/* ---------- Waveform ---------- */
+function drawWave() {
+  const ch = waveCh, g = ch.g, w = ch.w, h = ch.h, buf = state.timeBuf;
+  const m = { l: 34, r: 8, t: 8, b: 8 }, pw = w - m.l - m.r, ph = h - m.t - m.b, cy = m.t + ph / 2;
+  g.fillStyle = C.bg; g.fillRect(0, 0, w, h);
+  g.font = MONO; g.textBaseline = 'middle'; g.lineWidth = 1;
+  let gain = 1, info = '—';
+  let start = 0, W = 0;
+  if (buf) {
+    W = buf.length >> 1;                                  // show half of the buffer after the trigger
+    let i = 1; const lim = buf.length - W;
+    for (; i < lim; i++) if (buf[i - 1] < 0 && buf[i] >= 0) break;   // rising zero crossing
+    start = i >= lim ? 0 : i;
+    if (state.waveGain === 'auto') {
+      let pk = 0; for (let k = 0; k < W; k++) { const a = Math.abs(buf[start + k]); if (a > pk) pk = a; }
+      gain = pk > 1e-5 ? clamp(0.9 / pk, 1, 200) : 1;
+    } else gain = +state.waveGain;
+    info = (W / state.sr * 1000).toFixed(1) + ' ms window · ×' + (gain >= 10 ? gain.toFixed(0) : gain.toFixed(1));
+  }
+  for (const a of [1, .5, 0, -.5, -1]) {
+    const y = Math.round(cy - a * (ph / 2)) + .5;
+    g.strokeStyle = a === 0 ? C.line : C.grid; g.beginPath(); g.moveTo(m.l, y); g.lineTo(w - m.r, y); g.stroke();
+    g.fillStyle = C.text; g.textAlign = 'right'; g.fillText((a > 0 ? '+' : '') + a, m.l - 4, Math.min(Math.max(y, m.t + 6), h - m.b - 6));
+  }
+  if (buf) {
+    g.beginPath(); g.strokeStyle = C.accent; g.lineWidth = 1.4; g.lineJoin = 'round';
+    const yv = v => cy - clamp(v * gain, -1, 1) * (ph / 2);
+    if (W <= pw * 1.5) {
+      for (let k = 0; k < W; k++) { const x = m.l + pw * k / (W - 1), y = yv(buf[start + k]); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+    } else {                                               // min/max envelope per pixel column
+      const px = Math.floor(pw);
+      for (let c = 0; c < px; c++) {
+        const a = start + Math.floor(c * W / px), b = start + Math.floor((c + 1) * W / px);
+        let mn = Infinity, mx = -Infinity;
+        for (let k = a; k < b; k++) { const v = buf[k]; if (v < mn) mn = v; if (v > mx) mx = v; }
+        g.moveTo(m.l + c + .5, yv(mn)); g.lineTo(m.l + c + .5, yv(mx) - 0.5);
+      }
+    }
+    g.stroke();
+  }
+  setText('waveTag', info);
+}
+
+/* ---------- Time series ---------- */
+function drawSeries() {
+  const ch = serCh, g = ch.g, w = ch.w, h = ch.h, H = state.hist;
+  const m = { l: 44, r: 44, t: 12, b: 22 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  g.fillStyle = C.bg; g.fillRect(0, 0, w, h); g.font = MONO; g.lineWidth = 1;
+  const n = H.t.length, tEnd = n ? H.t[n - 1] : 0;
+  const win = state.winSec, tStart = win ? Math.max(0, tEnd - win) : 0, span = Math.max(win || tEnd, 10);
+  const t0 = win ? tEnd - span : 0, t1 = win ? tEnd : span;
+  let i0 = 0; while (i0 < n && H.t[i0] < t0) i0++;
+  // level axis
+  let lo = Infinity, hi = -Infinity;
+  for (let i = i0; i < n; i++) { const v = toDisp(H.lvl[i]); if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (!isFinite(lo)) { lo = calibrated() ? 30 : -100; hi = calibrated() ? 90 : -20; }
+  const ls = niceStep(Math.max(20, hi - lo + 10) / 4); lo = Math.floor((lo - 3) / ls) * ls; hi = Math.max(lo + 4 * ls, Math.ceil((hi + 3) / ls) * ls);
+  const xOf = t => m.l + pw * (t - t0) / (t1 - t0), yL = v => m.t + ph * (1 - (v - lo) / (hi - lo));
+  const fl = 20, fh = 20000, yF = f => m.t + ph * (1 - Math.log(clamp(f, fl, fh) / fl) / Math.log(fh / fl));
+  g.textBaseline = 'middle';
+  for (let v = lo; v <= hi + 1e-6; v += ls) {
+    const y = Math.round(yL(v)) + .5;
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(m.l, y); g.lineTo(w - m.r, y); g.stroke();
+    g.fillStyle = C.accent; g.textAlign = 'right'; g.fillText(String(Math.round(v)), m.l - 5, y);
+  }
+  g.fillStyle = C.accent2; g.textAlign = 'left';
+  for (const f of [100, 1000, 10000]) g.fillText(f >= 1000 ? f / 1000 + 'k' : String(f), w - m.r + 5, yF(f));
+  g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = C.text;
+  const ts = niceStep(span / 5);
+  for (let t = Math.ceil(t0 / ts) * ts; t <= t1 + 1e-6; t += ts) {
+    const x = Math.round(xOf(t)) + .5;
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x, m.t); g.lineTo(x, m.t + ph); g.stroke();
+    g.fillText(fmtTime(t), x, m.t + ph + 5);
+  }
+  g.textAlign = 'left'; g.fillStyle = C.accent; g.fillText(unitLabel(), 4, 0);
+  // lines (break on NaN)
+  const line = (arr, yfn, col, conv) => {
+    g.beginPath(); g.strokeStyle = col; g.lineWidth = 1.5; let pen = false;
+    for (let i = i0; i < n; i++) {
+      const v = arr[i];
+      if (!isFinite(v)) { pen = false; continue; }
+      const x = xOf(H.t[i]), y = yfn(conv ? conv(v) : v);
+      pen ? g.lineTo(x, y) : g.moveTo(x, y); pen = true;
+    }
+    g.stroke();
+  };
+  line(H.dom, yF, C.accent2); line(H.lvl, yL, C.accent, toDisp);
+  if (n === 0) { g.fillStyle = C.text; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(state.statsOn ? 'History appears here while analysing' : 'Statistics are disabled', w / 2, h / 2); }
+}
+
+let redrawQueued = false;
+function drawAll() { drawSpectrum(); drawWave(); drawSeries(); }
+function requestRedraw() {
+  if (state.running && !state.paused) return;   // the animation loop already redraws
+  if (redrawQueued) return; redrawQueued = true;
+  requestAnimationFrame(() => { redrawQueued = false; drawAll(); });
+}
+
+/* ============================ 7. UI ============================ */
+function setStatus(txt, kind) { setText('statusTxt', txt); $('dot').className = 'dot ' + (kind || ''); }
+function updateButtons() {
+  const r = state.running, b = state.starting;
+  document.querySelectorAll('.js-start').forEach(x => x.disabled = r || b);
+  $('stopBtn').disabled = !r; $('pauseBtn').disabled = !r;
+  $('pauseBtn').textContent = state.paused ? '▶ Resume' : '❚❚ Pause';
+  $('calBtn').disabled = !r || state.paused;
+  $('intro').classList.toggle('hidden', r);
+}
+
+function renderEnvStatic() {
+  const e = ENVS[state.env];
+  setText('envName', e.name); setText('envTip', e.tip); setText('envRef', 'Reference: ' + e.ref + ' Bands below are illustrative, not official limits.');
+  const t = activeThresholds(), u = calibrated() ? 'dB SPL' : 'dBFS (relative)';
+  $('envBands').innerHTML = '';
+  const labels = ['Very Quiet ≤', 'Quiet ≤', 'Moderate ≤', 'Noisy ≤', 'Very Noisy >'];
+  [t[0], t[1], t[2], t[3], t[3]].forEach((v, i) => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+    d.firstChild.textContent = labels[i]; d.lastChild.textContent = v + (i === 0 ? ' ' + (calibrated() ? 'dB' : 'dBFS') : ''); $('envBands').appendChild(d);
+  });
+  setText('thrHelp', calibrated() ? 'Thresholds in dB SPL for this environment (editable; must increase left to right).' : 'Uncalibrated: thresholds are relative input levels in dBFS and are the same for every environment. They are not official limits.');
+  const box = $('thrBox'); box.innerHTML = '';
+  t.forEach((v, i) => {
+    const l = document.createElement('label'); l.className = 'field'; l.textContent = CATS[i].name + ' ≤';
+    const inp = document.createElement('input'); inp.type = 'number'; inp.step = '1'; inp.value = v; inp.inputMode = 'numeric';
+    inp.addEventListener('change', () => onThresholdEdit(i, parseFloat(inp.value)));
+    l.appendChild(inp); box.appendChild(l);
+  });
+  void u;
+}
+function onThresholdEdit(i, val) {
+  if (!isFinite(val)) { renderEnvStatic(); return; }
+  const t = activeThresholds().slice(); t[i] = val;
+  for (let k = 1; k < 4; k++) if (t[k] <= t[k - 1]) { showNotice('Thresholds must increase from Very Quiet to Noisy.', 'warn'); renderEnvStatic(); return; }
+  if (calibrated()) state.custom.spl[state.env] = t; else state.custom.rel = t;
+  hideNotice(); renderEnvStatic(); updateUI(true);
+}
+
+function updateUI(force) {
+  const S = state, st = S.stats, run = S.running;
+  const hasLevel = S.lvlInit;
+  const cal = calibrated(), valid = S.fastDb > GATE_DB;
+  setText('lvlUnit', unitLabel());
+  setText('levelMode', cal ? 'user-calibrated · estimate' : 'uncalibrated · dBFS');
+  setText('lvlNow', hasLevel ? fmtDb(toDisp(S.fastDb)) : '—');
+  const lo = cal ? 20 : -100, hi = cal ? 120 : 0;
+  $('meterFill').style.width = hasLevel ? (100 * ramp(toDisp(S.fastDb), lo, hi)).toFixed(1) + '%' : '0%';
+  const avgDb = st.energyT > 0 ? powToDb(st.energy / st.energyT) : NaN;
+  setText('lvlMin', isFinite(st.lvlMin) ? fmtDb(toDisp(st.lvlMin)) : '—');
+  setText('lvlMax', isFinite(st.lvlMax) ? fmtDb(toDisp(st.lvlMax)) : '—');
+  setText('lvlAvg', isFinite(avgDb) ? fmtDb(toDisp(avgDb)) : '—');
+  setText('lvlPeak', st.peak > 0 ? fmtDb(toDisp(ampToDb(st.peak))) : '—');
+  setText('lvlSlow', hasLevel ? fmtDb(toDisp(S.slowDb)) : '—');
+  setText('lvlFramePeak', hasLevel ? fmtDb(toDisp(S.framePeakDb)) : '—');
+  setText('levelNote', cal
+    ? 'Approximate dB SPL from your one-point calibration: unweighted, device-specific, accuracy several dB at best. Not a certified measurement.'
+    : 'Estimate only. dBFS is digital amplitude relative to full scale (0 dBFS), unweighted; it is not dB SPL. Calibrate below to obtain an approximate dB SPL.');
+  $('clipWarn').classList.toggle('hidden', !(run && S.sessionT < S.clipUntil));
+  $('statsCard').classList.toggle('dim', !S.statsOn && !st.activeT);
+
+  // ---- frequency cards ----
+  setText('domVal', fmtHz(S.domFreq)); setText('domBand', freqBand(S.domFreq));
+  setText('domDb', isFinite(S.domFreq) ? S.domDb.toFixed(1) + ' dBFS' : '— dBFS');
+  setText('curVal', fmtHz(S.curFreq)); setText('curMin', fmtHz(st.fMin)); setText('curMax', fmtHz(st.fMax));
+  const p = S.pitch, hasF0 = valid && p.f0 && p.clarity >= 0.6;
+  setText('f0Val', hasF0 ? fmtHz(p.f0) : '—');
+  setText('f0Note', hasF0 ? noteName(p.f0) + ' · ' + freqBand(p.f0).replace(' Frequency', '') : 'no clear pitch');
+  setText('f0Clar', 'clarity ' + (valid ? Math.round(p.clarity * 100) + '%' : '—'));
+  let cmp = 'Estimated from time-domain autocorrelation (50–4000 Hz) when the sound is periodic. Dominant ≠ fundamental: a strong harmonic can outweigh f0.';
+  if (hasF0 && isFinite(S.domFreq)) {
+    const r = S.domFreq / p.f0, n = Math.round(r);
+    cmp = Math.abs(r - 1) < 0.04 ? 'Dominant frequency matches the fundamental here.'
+      : (n >= 2 && Math.abs(r - n) < 0.06) ? 'Dominant peak ≈ harmonic ' + n + ' (' + r.toFixed(2) + ' × f0): dominant and fundamental differ.'
+      : 'Dominant frequency (' + fmtHzFull(S.domFreq) + ') differs from f0: the strongest component is not the fundamental.';
+  }
+  setText('f0Cmp', cmp);
+  setText('resVal', S.binHz.toFixed(2)); setText('resN', String(S.fftSize)); setText('resFs', (S.sr / 1000).toFixed(1) + ' kHz');
+  setText('resWin', (S.fftSize / S.sr * 1000).toFixed(0) + ' ms'); setText('resNy', (S.sr / 2000).toFixed(1) + ' kHz');
+  setText('specTag', (S.scale === 'log' ? 'log' : 'linear') + ' · dBFS');
+  setText('peaksTxt', 'Peaks: ' + (S.peaks.length ? S.peaks.slice(0, 5).map(q => fmtHzFull(q.freq) + ' (' + q.db.toFixed(0) + ' dB)').join('  ·  ') : '—'));
+
+  // ---- assessment ----
+  const aC = $('assessCard');
+  if (hasLevel && (run || st.activeT > 0)) {
+    const disp = toDisp(S.slowDb), ci = categoryOf(disp), e = ENVS[S.env], t = activeThresholds();
+    aC.className = 'card span2 assess ' + CATS[ci].cls;
+    setText('aState', CATS[ci].name); setText('aReduce', REDUCE[ci]);
+    setText('assessMode', cal ? 'calibrated estimate' : 'relative · no calibration');
+    const band = ci === 0 ? '≤ ' + t[0] : ci === 4 ? '> ' + t[3] : (t[ci - 1] + ' – ' + t[ci]);
+    setText('aExplain', cal
+      ? 'Estimated ' + disp.toFixed(0) + ' dB SPL (1 s average, unweighted) falls in the ' + CATS[ci].name + ' band (' + band + ' dB) for ' + e.name + '.'
+      : 'Relative input level ' + disp.toFixed(0) + ' dBFS (1 s average) falls in the ' + CATS[ci].name + ' band (' + band + ' dBFS). This is relative to the device input, not an official standard.');
+    setText('aAction', ci <= 1 ? 'No action needed. Keep monitoring if the activity is noise-sensitive.' : ci === 2 ? e.mod : e.noisy);
+    const tot = st.catT.reduce((a, b) => a + b, 0), noisy = st.catT[3] + st.catT[4];
+    setText('aExposure', tot > 1 ? 'Exposure: ' + Math.round(100 * noisy / tot) + '% of this session (' + fmtTime(noisy) + ') was Noisy or Very Noisy. Duration matters as much as level.' : '');
+  } else {
+    aC.className = 'card span2 assess'; setText('aState', '—'); setText('aReduce', '—'); setText('aExplain', 'Start the analysis to see an assessment.'); setText('aAction', '—'); setText('aExposure', '');
+    setText('assessMode', 'relative');
+  }
+
+  // ---- classification ----
+  const bars = $('clsBars');
+  if (!bars.firstChild) {
+    ['voice', 'music', 'traffic', 'background', 'sudden', 'whistle'].forEach(k => {
+      const r = document.createElement('div'); r.className = 'bar-row'; r.dataset.k = k;
+      r.innerHTML = '<span></span><div class="bar"><i></i></div><span>0%</span>'; bars.appendChild(r);
+    });
+  }
+  if (run && !valid) { setText('clsTop', 'No significant sound'); setText('clsConf', 'Input level is below the usable threshold.'); }
+  else if (!S.cls) { if (!run && !hasLevel) { setText('clsTop', '—'); } }
+  if (S.cls) {
+    const sorted = S.cls.slice().sort((a, b) => b.score - a.score), top = sorted.filter(c => c.score >= 0.5).slice(0, 2);
+    const conf = s => s >= 0.75 ? 'moderate similarity' : 'low similarity';
+    setText('clsTop', top.length ? top.map(c => c.label).join(' / ') : 'Mixed / unclassified');
+    setText('clsConf', (top.length ? 'Possible pattern, ' + conf(top[0].score) + '. ' : 'No pattern matches well. ') + 'Based on spectrum and signal shape only; it cannot identify an exact sound source.');
+    for (const r of bars.children) {
+      const c = S.cls.find(x => x.key === r.dataset.k), pc = Math.round(c.score * 100);
+      r.firstChild.textContent = c.label; r.querySelector('i').style.width = pc + '%'; r.lastChild.textContent = pc + '%';
+    }
+  } else for (const r of bars.children) { r.querySelector('i').style.width = '0%'; r.lastChild.textContent = '—'; }
+
+  // ---- statistics ----
+  setText('stDur', fmtTime(S.sessionT)); setText('stAvg', isFinite(avgDb) ? fmtDb(toDisp(avgDb)) + ' ' + unitLabel() : '—');
+  setText('stMax', isFinite(st.lvlMax) ? fmtDb(toDisp(st.lvlMax)) + ' ' + unitLabel() : '—');
+  setText('stMin', isFinite(st.lvlMin) ? fmtDb(toDisp(st.lvlMin)) + ' ' + unitLabel() : '—');
+  const dv = S.hist.dom.filter(isFinite).sort((a, b) => a - b);
+  setText('stMed', dv.length ? fmtHzFull(dv[dv.length >> 1]) : '—');
+  setText('stN', String(S.hist.t.length));
+  setText('statsTag', S.statsOn ? (run ? (S.paused ? 'paused' : 'collecting') : 'final') : 'disabled');
+  const cb = $('catBars');
+  if (!cb.firstChild) CATS.forEach(c => { const r = document.createElement('div'); r.className = 'bar-row'; r.innerHTML = '<span></span><div class="bar"><i></i></div><span>0%</span>'; cb.appendChild(r); });
+  const tot = st.catT.reduce((a, b) => a + b, 0);
+  [...cb.children].forEach((r, i) => {
+    const pc = tot > 0 ? 100 * st.catT[i] / tot : 0;
+    r.firstChild.textContent = CATS[i].name; const bar = r.querySelector('i');
+    bar.style.width = pc.toFixed(0) + '%'; bar.style.background = 'var(--' + CATS[i].cls + ')'; r.lastChild.textContent = pc.toFixed(0) + '%';
+  });
+  setText('calTag', cal ? 'offset ' + (S.calOffset >= 0 ? '+' : '') + S.calOffset.toFixed(1) + ' dB' : 'not calibrated');
+
+  if (run && S.saveHist && Math.floor(S.sessionT / 10) !== S.lastSave) { S.lastSave = Math.floor(S.sessionT / 10); persistHistory(); }
+  if (force) renderEnvStatic();
+}
+
+/* ---------- optional local numeric history (never audio) ---------- */
+const HKEY = 'fa.history.v1';
+function persistHistory() {
+  if (!state.saveHist || !state.hist.t.length) return;
+  const h = state.hist;
+  store.set(HKEY, JSON.stringify({ savedAt: new Date().toISOString(), interval: h.interval, calOffset: state.calOffset, t: h.t, lvl: h.lvl, dom: h.dom.map(v => isFinite(v) ? v : null), f0: h.f0.map(v => isFinite(v) ? v : null) }));
+  showSavedInfo();
+}
+function showSavedInfo() {
+  let txt = 'Nothing is saved on this device.';
+  const raw = store.get(HKEY);
+  if (raw) { try { const o = JSON.parse(raw); txt = 'Saved on this device: ' + o.t.length + ' numeric samples from ' + new Date(o.savedAt).toLocaleString() + '. No audio is stored.'; } catch (e) { /* ignore */ } }
+  setText('savedInfo', txt);
+}
+function exportCsv() {
+  let h = state.hist, off = state.calOffset;
+  if (!h.t.length) { const raw = store.get(HKEY); if (raw) { try { const o = JSON.parse(raw); h = { t: o.t, lvl: o.lvl, dom: o.dom, f0: o.f0 }; off = o.calOffset; } catch (e) { /* ignore */ } } }
+  if (!h.t.length) { showNotice('No measurements to export yet.', 'warn'); return; }
+  const rows = ['time_s,level_dBFS,level_dB_SPL_est,dominant_Hz,f0_Hz'];
+  h.t.forEach((t, i) => rows.push([t, h.lvl[i], off === null || off === undefined ? '' : (h.lvl[i] + off).toFixed(2), h.dom[i] == null || !isFinite(h.dom[i]) ? '' : h.dom[i], h.f0[i] == null || !isFinite(h.f0[i]) ? '' : h.f0[i]].join(',')));
+  const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'frequency-analyzer-measurements.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ---------- calibration ---------- */
+function calibrateNow() {
+  const ref = parseFloat($('calRef').value);
+  if (!state.running || !isFinite(ref) || ref < 30 || ref > 130) { showNotice('Enter a reference reading between 30 and 130 dB SPL while the analysis is running.', 'warn'); return; }
+  if (state.slowDb < GATE_DB + 10) { showNotice('The input is too quiet to calibrate. Play a steady noise near the microphone.', 'warn'); return; }
+  if (state.sessionT < state.clipUntil) { showNotice('The input is clipping. Reduce the level and try again.', 'warn'); return; }
+  state.calOffset = ref - state.slowDb;
+  store.set('fa.cal', String(state.calOffset)); hideNotice();
+  renderEnvStatic(); updateUI(true); requestRedraw();
+}
+function clearCal() { state.calOffset = null; store.del('fa.cal'); renderEnvStatic(); updateUI(true); requestRedraw(); }
+
+/* ============================ 8. INIT & EVENTS ============================ */
+function setTheme(t) {
+  document.documentElement.dataset.theme = t; $('themeBtn').textContent = t === 'dark' ? '☾' : '☀';
+  document.querySelector('meta[name="theme-color"]').content = t === 'dark' ? '#0a0f14' : '#eef2f6';
+  store.set('fa.theme', t); refreshColors(); requestAnimationFrame(drawAll);
+}
+
+function init() {
+  const prob = supportProblem();
+  if (prob) { setText('supportMsg', '⚠ ' + prob); showNotice(prob, 'error'); }
+  setTheme(store.get('fa.theme') === 'light' ? 'light' : 'dark');
+  specCh = makeChart('specBox', 'specCv'); waveCh = makeChart('waveBox', 'waveCv'); serCh = makeChart('serBox', 'serCv');
+  const ro = new ResizeObserver(() => { [specCh, waveCh, serCh].forEach(c => c.resize()); requestRedraw(); drawAll(); });
+  [specCh, waveCh, serCh].forEach(c => ro.observe(c.box));
+
+  const cal = parseFloat(store.get('fa.cal')); if (isFinite(cal)) state.calOffset = cal;
+  state.saveHist = store.get('fa.save') === '1'; $('saveChk').checked = state.saveHist;
+  state.binHz = state.sr / state.fftSize;
+
+  document.querySelectorAll('.js-start').forEach(b => b.addEventListener('click', start));
+  $('stopBtn').addEventListener('click', stop);
+  $('pauseBtn').addEventListener('click', togglePause);
+  $('resetBtn').addEventListener('click', () => { resetSession(); state.dispSpec && state.dispSpec.fill(-140); state.specInit = false; updateUI(true); drawAll(); });
+  $('themeBtn').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+  $('fftSel').addEventListener('change', e => changeFft(+e.target.value));
+  $('scaleSel').addEventListener('change', e => { state.scale = e.target.value; updateUI(true); requestRedraw(); });
+  $('envSel').addEventListener('change', e => { state.env = e.target.value; state.stats.catT = [0, 0, 0, 0, 0]; renderEnvStatic(); updateUI(true); });
+  $('gainSel').addEventListener('change', e => { state.waveGain = e.target.value; requestRedraw(); });
+  $('winSel').addEventListener('change', e => { state.winSec = +e.target.value; drawSeries(); });
+  $('statsChk').addEventListener('change', e => { state.statsOn = e.target.checked; updateUI(true); drawSeries(); });
+  $('saveChk').addEventListener('change', e => { state.saveHist = e.target.checked; store.set('fa.save', e.target.checked ? '1' : '0'); if (state.saveHist) persistHistory(); showSavedInfo(); });
+  $('csvBtn').addEventListener('click', exportCsv);
+  $('clearSaved').addEventListener('click', () => { store.del(HKEY); showSavedInfo(); });
+  $('calBtn').addEventListener('click', calibrateNow);
+  $('calClear').addEventListener('click', clearCal);
+  $('thrReset').addEventListener('click', () => { if (calibrated()) delete state.custom.spl[state.env]; else state.custom.rel = REL_DEFAULT.slice(); renderEnvStatic(); updateUI(true); });
+
+  // spectrum hover / touch read-out
+  const cv = specCh.cv, setHover = e => { const r = cv.getBoundingClientRect(); state.hover = { x: e.clientX - r.left, y: e.clientY - r.top }; requestRedraw(); };
+  cv.addEventListener('pointermove', setHover); cv.addEventListener('pointerdown', setHover);
+  ['pointerleave', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => { state.hover = null; requestRedraw(); }));
+
+  window.addEventListener('pagehide', () => { if (state.stream) state.stream.getTracks().forEach(t => t.stop()); });
+  renderEnvStatic(); updateButtons(); updateUI(true); showSavedInfo(); drawAll();
+}
+init();
+</script>
+</body>
+</html>
